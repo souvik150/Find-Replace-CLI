@@ -1,6 +1,6 @@
 use text_colorizer::*;
-use std::env;
 use std::fs;
+use regex::Regex;
 
 #[derive(Debug)]
 #[allow(dead_code)]
@@ -16,6 +16,11 @@ fn print_help(){
   eprintln!("Example: {} {} {} {}", "<Target String>".blue(), "<Replacement String>".blue(), "input.txt".yellow(), "output.txt".yellow());
 }
 
+fn replace(target: &str, rep: &str, data: &str) -> Result<String, regex::Error> {
+  let regex = Regex::new(target)?;
+  Ok(regex.replace_all(data, rep).to_string())
+}
+
 fn read_and_write(args: &Arguments) {
   let data = match fs::read_to_string(&args.input_file) {
       Ok(v) => v,
@@ -25,7 +30,15 @@ fn read_and_write(args: &Arguments) {
       }
   };
 
-  match fs::write(&args.output_file, data) {
+  let replace_data = match replace(&args.pattern, &args.replace, &data) {
+      Ok(v) => v,
+      Err(e) => {
+          eprintln!("{} {} {} {}", "Error:".red().bold(), "Replace".yellow(), args.replace.yellow(), e);
+          std::process::exit(1);
+      }
+  };
+
+  match fs::write(&args.output_file, &replace_data) {
       Ok(v) => v,
       Err(e) => {
           eprintln!("{} {} {} {}", "Error:".red().bold(), "Output file".yellow(), args.output_file.yellow(), e);
